@@ -115,7 +115,7 @@
                             <label class="file-input-label">
                                 <i class="fas fa-file-upload"></i>
                                 <span>选择文本文件</span>
-                                <input type="file" id="fileInput" accept=".txt,.md,.srt,.json,.csv,.xml,.html,.htm,.rtf,.log,text/plain" hidden>
+                                <input type="file" id="fileInput" accept=".txt,.md,.srt,.json,.csv,.xml,.html,.htm,.rtf,.log,.docx,.pdf,text/plain,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" hidden>
                             </label>
                             <div class="file-actions">
                                 <button class="file-btn" id="loadFileBtn">
@@ -229,6 +229,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
