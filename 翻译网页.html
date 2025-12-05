@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>多功能跨模态汉语言智能处理平台</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- 头部导航 -->
+        <header class="header">
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-language"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>多功能跨模态汉语言智能处理平台</h1>
+                    <p>支持中文、英文、文言文互译与智能处理</p>
+                </div>
+            </div>
+            <nav class="nav">
+                <button class="nav-btn active" data-tab="translate">
+                    <i class="fas fa-exchange-alt"></i>
+                    <span>翻译</span>
+                </button>
+                <button class="nav-btn" data-tab="search">
+                    <i class="fas fa-search"></i>
+                    <span>搜索</span>
+                </button>
+                <button class="nav-btn" data-tab="chat">
+                    <i class="fas fa-comments"></i>
+                    <span>AI对话</span>
+                </button>
+            </nav>
+        </header>
+
+        <!-- 主要内容区域 -->
+        <main class="main-content">
+            <!-- 翻译功能 -->
+            <section id="translate" class="tab-content active">
+                <div class="translate-container">
+                    <div class="language-selector">
+                        <div class="language-group">
+                            <label>源语言</label>
+                            <div class="select-wrapper">
+                                <select id="sourceLang">
+                                    <option value="zh">中文</option>
+                                    <option value="en">English</option>
+                                    <option value="classical">文言文</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                        <button class="swap-btn" id="swapLanguages">
+                            <i class="fas fa-exchange-alt"></i>
+                        </button>
+                        <div class="language-group">
+                            <label>目标语言</label>
+                            <div class="select-wrapper">
+                                <select id="targetLang">
+                                    <option value="en">English</option>
+                                    <option value="zh">中文</option>
+                                    <option value="classical">文言文</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="translate-area">
+                        <div class="input-section">
+                            <div class="section-header">
+                                <span>输入文本</span>
+                                <div class="input-actions">
+                                    <button class="action-btn" id="clearInput" title="清空">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button class="action-btn" id="listenInput" title="朗读">
+                                        <i class="fas fa-microphone"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea id="sourceText" placeholder="请输入要翻译的文本..."></textarea>
+                        </div>
+                        <div class="output-section">
+                            <div class="section-header">
+                                <span>翻译结果</span>
+                                <div class="output-actions">
+                                    <button class="action-btn" id="copyResult" title="复制">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="action-btn" id="listenOutput" title="朗读">
+                                        <i class="fas fa-volume-up"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="translatedText" class="translated-text"></div>
+                        </div>
+                    </div>
+
+                    <button class="translate-btn" id="translateBtn">
+                        <i class="fas fa-language"></i>
+                        <span>开始翻译</span>
+                    </button>
+
+                    <!-- 文件翻译 -->
+                    <div class="file-translate-container">
+                        <div class="section-header">
+                            <span>文件翻译</span>
+                        </div>
+                        <div class="file-controls">
+                            <label class="file-input-label">
+                                <i class="fas fa-file-upload"></i>
+                                <span>选择文本文件</span>
+                                <input type="file" id="fileInput" accept=".txt,.md,.srt,.json,.csv,.xml,.html,.htm,.rtf,.log,text/plain" hidden>
+                            </label>
+                            <div class="file-actions">
+                                <button class="file-btn" id="loadFileBtn">
+                                    <i class="fas fa-file-alt"></i>
+                                    <span>仅载入</span>
+                                </button>
+                                <button class="file-btn primary" id="translateFileBtn">
+                                    <i class="fas fa-language"></i>
+                                    <span>载入并翻译</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="file-meta" id="fileInfo">未选择文件</div>
+                        <div class="file-preview" id="filePreview">可预览前几百字符，方便确认内容</div>
+                        <div class="file-note">暂支持纯文本格式（如 txt、md、csv、json、srt 等），最大 2 MB。</div>
+                    </div>
+
+                    <!-- 图片文字识别（OCR） -->
+                    <div class="ocr-container">
+                        <div class="section-header">
+                            <span>图片文字识别</span>
+                        </div>
+                        <div class="ocr-controls">
+                            <label class="file-input-label">
+                                <i class="fas fa-image"></i>
+                                <span>选择图片</span>
+                                <input type="file" id="imageInput" accept="image/*" hidden>
+                            </label>
+                            <div class="select-wrapper">
+                                <select id="ocrLang">
+                                    <option value="zh">中文识别</option>
+                                    <option value="en">英文识别</option>
+                                </select>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <button class="ocr-btn" id="ocrBtn">
+                                <i class="fas fa-magic"></i>
+                                <span>识别并翻译</span>
+                            </button>
+                        </div>
+                        <div class="ocr-preview" id="imagePreview"></div>
+                        <div class="ocr-progress" id="ocrProgress" style="display:none;"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 搜索功能 -->
+            <section id="search" class="tab-content">
+                <div class="search-container">
+                    <div class="search-header">
+                        <h2>词汇搜索</h2>
+                        <p>查找单词含义、发音和例句</p>
+                    </div>
+                    <div class="search-box">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="searchInput" placeholder="搜索单词或短语...">
+                        </div>
+                        <button class="search-btn" id="searchBtn">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                    <div class="search-results" id="searchResults">
+                        <div class="search-placeholder">
+                            <i class="fas fa-search"></i>
+                            <p>输入单词开始搜索</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI对话功能 -->
+            <section id="chat" class="tab-content">
+                <div class="chat-container">
+                    <div class="chat-header">
+                        <div class="ai-avatar">
+                            <i class="fas fa-robot"></i>
+                        </div>
+                        <div class="ai-info">
+                            <h3>DeepSeek AI助手</h3>
+                            <span class="status">
+                                <i class="fas fa-circle"></i>
+                                在线
+                            </span>
+                        </div>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <div class="message ai-message">
+                            <div class="message-avatar">
+                                <i class="fas fa-robot"></i>
+                            </div>
+                            <div class="message-content-wrapper">
+                                <div class="message-content">
+                                    您好！我是多功能跨模态汉语言智能处理平台的AI助手，可以帮您进行翻译、解释单词含义，或回答任何问题。有什么可以帮助您的吗？
+                                </div>
+                                <div class="message-time">刚刚</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="chat-input">
+                        <div class="chat-input-wrapper">
+                            <input type="text" id="chatInput" placeholder="输入您的问题...">
+                            <button class="send-btn" id="sendBtn">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
