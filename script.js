@@ -1,8 +1,8 @@
 // 全局变量
 let currentTab = 'translate';
 let isTranslating = false;
-const FILE_SIZE_LIMIT = 2 * 1024 * 1024; // 2MB
-const SUPPORTED_TEXT_EXTS = ['.txt', '.md', '.srt', '.json', '.csv', '.xml', '.html', '.htm', '.rtf', '.log'];
+const FILE_SIZE_LIMIT = 5 * 1024 * 1024; // 5MB (增加以支持 docx/pdf)
+const SUPPORTED_TEXT_EXTS = ['.txt', '.md', '.srt', '.json', '.csv', '.xml', '.html', '.htm', '.rtf', '.log', '.docx', '.pdf'];
 
 // 扩展的翻译数据库 - 基于英汉大辞典和古汉语常用字字典
 const translationData = {
@@ -3805,16 +3805,81 @@ function formatFileSize(bytes) {
 function isSupportedTextFile(file) {
     if (!file) return false;
     const name = (file.name || '').toLowerCase();
-    return SUPPORTED_TEXT_EXTS.some(ext => name.endsWith(ext)) || (file.type && file.type.startsWith('text/'));
+    return SUPPORTED_TEXT_EXTS.some(ext => name.endsWith(ext)) || 
+           (file.type && (file.type.startsWith('text/') || 
+                          file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' ||
+                          file.type === 'application/pdf'));
 }
 
-function readFileAsText(file) {
+async function readFileAsText(file) {
+    const fileName = (file.name || '').toLowerCase();
+    
+    // 处理 PDF 文件
+    if (fileName.endsWith('.pdf') || file.type === 'application/pdf') {
+        return await readPDFFile(file);
+    }
+    
+    // 处理 DOCX 文件
+    if (fileName.endsWith('.docx') || file.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+        return await readDOCXFile(file);
+    }
+    
+    // 处理普通文本文件
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = () => resolve(reader.result || '');
         reader.onerror = () => reject(reader.error || new Error('无法读取文件'));
         reader.readAsText(file);
     });
+}
+
+// 读取 PDF 文件内容
+async function readPDFFile(file) {
+    try {
+        // 初始化 PDF.js worker
+        if (typeof pdfjsLib === 'undefined') {
+            throw new Error('PDF.js 库未加载');
+        }
+        
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+        
+        let fullText = '';
+        const numPages = pdf.numPages;
+        
+        for (let pageNum = 1; pageNum <= numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const textContent = await page.getTextContent();
+            const pageText = textContent.items.map(item => item.str).join(' ');
+            fullText += pageText + '\n';
+        }
+        
+        return fullText.trim();
+    } catch (error) {
+        throw new Error(`PDF 解析失败: ${error.message || error}`);
+    }
+}
+
+// 读取 DOCX 文件内容
+async function readDOCXFile(file) {
+    try {
+        if (typeof mammoth === 'undefined') {
+            throw new Error('Mammoth.js 库未加载');
+        }
+        
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
+        
+        if (result.messages && result.messages.length > 0) {
+            console.warn('DOCX 解析警告:', result.messages);
+        }
+        
+        return result.value || '';
+    } catch (error) {
+        throw new Error(`DOCX 解析失败: ${error.message || error}`);
+    }
 }
 
 function handleTextFileSelect() {
@@ -3825,13 +3890,13 @@ function handleTextFileSelect() {
         return;
     }
     if (!isSupportedTextFile(file)) {
-        showNotification('暂仅支持文本类文件（txt、md、csv、json、srt 等）');
+        showNotification('暂仅支持文本类文件（txt、md、csv、json、srt、docx、pdf 等）');
         elements.fileInput.value = '';
         if (elements.fileInfo) elements.fileInfo.textContent = '未选择文件';
         return;
     }
     if (file.size > FILE_SIZE_LIMIT) {
-        showNotification('文件过大，需小于 2 MB');
+        showNotification(`文件过大，需小于 ${FILE_SIZE_LIMIT / (1024 * 1024)} MB`);
         elements.fileInput.value = '';
         if (elements.fileInfo) elements.fileInfo.textContent = '未选择文件';
         return;
@@ -3841,21 +3906,44 @@ function handleTextFileSelect() {
         elements.fileInfo.textContent = `${file.name} · ${formatFileSize(file.size)}`;
     }
 
-    const reader = new FileReader();
-    reader.onload = () => {
-        const text = String(reader.result || '');
-        const snippet = text.slice(0, 800);
+    // 预览文件内容
+    const fileName = (file.name || '').toLowerCase();
+    if (fileName.endsWith('.pdf') || fileName.endsWith('.docx')) {
+        // PDF 和 DOCX 文件预览需要异步处理
         if (elements.filePreview) {
-            elements.filePreview.textContent = snippet || '文件为空';
-            if (text.length > 800) {
-                elements.filePreview.textContent += '\n…';
-            }
+            elements.filePreview.textContent = '正在加载预览...';
         }
-    };
-    reader.onerror = () => {
-        if (elements.filePreview) elements.filePreview.textContent = '预览失败';
-    };
-    reader.readAsText(file);
+        readFileAsText(file).then(text => {
+            const snippet = String(text || '').slice(0, 800);
+            if (elements.filePreview) {
+                elements.filePreview.textContent = snippet || '文件为空';
+                if (text.length > 800) {
+                    elements.filePreview.textContent += '\n…';
+                }
+            }
+        }).catch(err => {
+            if (elements.filePreview) {
+                elements.filePreview.textContent = `预览失败: ${err.message || err}`;
+            }
+        });
+    } else {
+        // 普通文本文件预览
+        const reader = new FileReader();
+        reader.onload = () => {
+            const text = String(reader.result || '');
+            const snippet = text.slice(0, 800);
+            if (elements.filePreview) {
+                elements.filePreview.textContent = snippet || '文件为空';
+                if (text.length > 800) {
+                    elements.filePreview.textContent += '\n…';
+                }
+            }
+        };
+        reader.onerror = () => {
+            if (elements.filePreview) elements.filePreview.textContent = '预览失败';
+        };
+        reader.readAsText(file);
+    }
 }
 
 async function loadTextFile(autoTranslate = false) {
@@ -3865,11 +3953,11 @@ async function loadTextFile(autoTranslate = false) {
         return;
     }
     if (!isSupportedTextFile(file)) {
-        showNotification('暂仅支持文本类文件（txt、md、csv、json、srt 等）');
+        showNotification('暂仅支持文本类文件（txt、md、csv、json、srt、docx、pdf 等）');
         return;
     }
     if (file.size > FILE_SIZE_LIMIT) {
-        showNotification('文件过大，需小于 2 MB');
+        showNotification(`文件过大，需小于 ${FILE_SIZE_LIMIT / (1024 * 1024)} MB`);
         return;
     }
 
